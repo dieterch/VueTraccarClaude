@@ -1,0 +1,3 @@
+tmux \
+new-session 'source _app' \; \
+#split-window -h 'source _build' \; \

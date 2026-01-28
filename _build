@@ -1,0 +1,4 @@
+python prepare.py
+pushd frontend
+tmux new-session -s 'build' 'npm run build' \;
+popd

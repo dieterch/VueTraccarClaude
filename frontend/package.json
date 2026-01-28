@@ -1,0 +1,30 @@
+{
+  "name": "frontend",
+  "version": "0.0.0",
+  "scripts": {
+    "dev": "cross-env NODE_OPTIONS='--no-warnings' vite --host",
+    "build": "vite build",
+    "justbuild": "vite build --mode production --watch false",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@mdi/font": "7.0.96",
+    "axios": "^1.6.7",
+    "crypto-js": "^4.2.0",
+    "md-editor-v3": "^4.11.3",
+    "roboto-fontface": "*",
+    "vue": "^3.3.0",
+    "vue-loading-overlay": "^6.0.4",
+    "vue3-google-map": "^0.19.0",
+    "vuetify": "^3.0.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^4.5.0",
+    "cross-env": "^7.0.3",
+    "sass": "^1.69.0",
+    "unplugin-fonts": "^1.1.0",
+    "unplugin-vue-components": "^0.26.0",
+    "vite": "^5.0.0",
+    "vite-plugin-vuetify": "^2.0.0"
+  }
+}
