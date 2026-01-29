@@ -154,6 +154,7 @@ cython_debug/
 
 dist/static/*
 config.toml
+config.toml*
 secret.js
 *.hdf
 
