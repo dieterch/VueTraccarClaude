@@ -19,8 +19,13 @@ import subprocess
 import re
 import time
 
+# WordPress Integration
+from dtraccar.wordpress import WordPress
+
 import dtraccar
 T = dtraccar.Traccar()
+WP = WordPress(T.cfg)  # Nutzt die gleiche Config wie Traccar
+
 
 # https://stackoverflow.com/questions/37039835/how-to-change-jinja2-delimiters
 class CustomQuart(Quart):
@@ -105,6 +110,33 @@ async def document(key):
             return T.saveDocument(key, **req)
         else:
             return T.getDocument(key)
+
+# WordPress endpoints
+@app.route("/wordpress/posts/<location_key>")
+async def wordpress_posts(location_key):
+    """Get WordPress posts for a location marker"""
+    try:
+        posts = WP.get_posts_by_tag(location_key)
+        return jsonify(posts)
+    except Exception as e:
+        print(f"WordPress posts error: {e}")
+        return jsonify([])
+
+@app.route("/wordpress/test")
+async def wordpress_test():
+    """Test WordPress connection"""
+    try:
+        connected = WP.test_connection()
+        stats = WP.get_cache_stats()
+        return jsonify({
+            'connected': connected,
+            'url': WP.base_url,
+            'cache_stats': stats
+        })
+    except Exception as e:
+        print(f"WordPress test error: {e}")
+        return jsonify({'connected': False, 'error': str(e)})
+
 
 # deliver the vuetify frontend
 @app.route("/")

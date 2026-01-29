@@ -1,0 +1,22 @@
+{
+  "name": "VueTraccar Development",
+  "description": "Wohnmobil-Reise Tracking App",
+  "environment": {
+    "python_version": "3.11",
+    "node_version": "20"
+  },
+  "safety": {
+    "confirm_before_delete": true,
+    "confirm_before_system_changes": true,
+    "max_file_size": "10MB"
+  },
+  "excluded_paths": [
+    "node_modules/",
+    "venv/",
+    "__pycache__/",
+    "*.pyc",
+    ".git/",
+    "dist/",
+    "*.h5"
+  ]
+}
