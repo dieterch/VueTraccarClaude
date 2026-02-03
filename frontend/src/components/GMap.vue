@@ -43,6 +43,7 @@ const mode = ref("light");
 const content = ref("");
 const file = ref("");
 const wordpressPosts = ref({});
+const copiedKey = ref(null);
 
 async function openmddialog(key) {
   console.log("openmddialog", key);
@@ -79,24 +80,73 @@ async function loadWordPressPosts(locationKey) {
 async function handleMarkerClick(location) {
   closeInfoWindows();
   location.infowindow = true;
-  
+
   // Posts parallel laden
   loadWordPressPosts(location.key);
-  
+
   if (mapRef.value?.map) {
     const map = mapRef.value.map;
-    
+
     // Schritt 1: Zentriere auf Marker
-    map.panTo({ 
-      lat: location.lat, 
-      lng: location.lng 
+    map.panTo({
+      lat: location.lat,
+      lng: location.lng
     });
-    
+
     // Schritt 2: Warte bis InfoWindow gerendert ist
     await new Promise(resolve => setTimeout(resolve, 350));
-    
+
     // Schritt 3: Verschiebe Marker nach unten (InfoWindow bleibt sichtbar)
     map.panBy(0, -160);
+  }
+}
+
+function copyToClipboard(key) {
+  console.log("📋 Attempting to copy:", key);
+
+  try {
+    // Method 1: Select from input field and copy
+    const input = document.getElementById('key-' + key);
+    if (input) {
+      input.select();
+      input.setSelectionRange(0, 99999); // For mobile devices
+
+      const success = document.execCommand('copy');
+      if (success) {
+        console.log("✅ Copied with execCommand from input");
+      } else {
+        throw new Error('execCommand failed');
+      }
+    } else {
+      // Method 2: Fallback to textarea
+      const textarea = document.createElement('textarea');
+      textarea.value = key;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      textarea.setSelectionRange(0, 99999);
+      const success = document.execCommand('copy');
+      document.body.removeChild(textarea);
+
+      if (!success) {
+        throw new Error('execCommand failed');
+      }
+      console.log("✅ Copied with execCommand fallback");
+    }
+
+    // Update UI state
+    copiedKey.value = key;
+
+    // Reset after 2 seconds
+    setTimeout(() => {
+      copiedKey.value = null;
+      console.log("🔄 Reset copied state");
+    }, 2000);
+
+  } catch (error) {
+    console.error("❌ Failed to copy:", error);
+    alert(`Konnte Key nicht kopieren: ${key}\nBitte manuell kopieren oder im Textfeld markieren und Strg+C drücken.`);
   }
 }
 </script>
@@ -164,7 +214,7 @@ async function handleMarkerClick(location) {
                     <div style="font-size: 0.85em; color: #666; margin-bottom: 5px">{{ new Date(post.date).toLocaleDateString("de-DE") }}</div>
                     <div style="font-size: 0.9em; line-height: 1.4; color: #333">{{ post.excerpt.replace(/<[^>]*>/g, '').substring(0, 150) }}...</div>
                   </div>
-                  
+
                   <div v-if="wordpressPosts[location.key].length > 3">
                     <a :href="wordpressPosts[location.key][0].link" target="_blank" style="font-size: 0.9em; color: #1976d2; text-decoration: none">→ Alle {{ wordpressPosts[location.key].length }} Beiträge ansehen</a>
                   </div>
@@ -173,6 +223,36 @@ async function handleMarkerClick(location) {
                 <div v-else-if="wordpressPosts[location.key] && wordpressPosts[location.key].length === 0" style="font-style: italic; color: #999; font-size: 0.9em">Noch keine Reiseberichte für diesen Ort</div>
 
                 <div v-else style="font-style: italic; color: #999; font-size: 0.9em">Lade Reiseberichte...</div>
+              </div>
+
+              <div style="margin-top: 15px; padding: 10px; background-color: #f5f5f5; border-radius: 4px; border: 1px solid #ddd">
+                <div style="font-size: 0.75em; color: #666; margin-bottom: 6px; font-weight: 500">WordPress Tag Key:</div>
+                <div style="display: flex; align-items: center; gap: 8px">
+                  <input
+                    type="text"
+                    readonly
+                    :value="location.key"
+                    :id="'key-' + location.key"
+                    style="flex: 1; font-size: 0.85em; color: #333; font-family: monospace; padding: 6px 8px; border: 1px solid #ccc; border-radius: 3px; background: white"
+                  />
+                  <button
+                    @click.stop="copyToClipboard(location.key)"
+                    :style="{
+                      padding: '6px 12px',
+                      fontSize: '0.8em',
+                      fontWeight: '500',
+                      border: 'none',
+                      borderRadius: '3px',
+                      cursor: 'pointer',
+                      minWidth: '75px',
+                      backgroundColor: copiedKey === location.key ? '#4caf50' : '#1976d2',
+                      color: 'white',
+                      transition: 'background-color 0.3s'
+                    }"
+                  >
+                    {{ copiedKey === location.key ? '✓ Copied!' : 'Copy' }}
+                  </button>
+                </div>
               </div>
 
               <p>
