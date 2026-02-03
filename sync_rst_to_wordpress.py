@@ -34,38 +34,56 @@ def load_config():
         return tomli.load(f)
 
 
+def normalize_wordpress_url(url: str, config: dict) -> str:
+    """
+    Normalize WordPress URL based on home mode.
+    Always convert to cloud URL for API operations.
+    """
+    if not url or not isinstance(url, str):
+        return url
+
+    # Always normalize to cloud URL for WordPress API operations
+    # The API always uses the cloud URL regardless of home mode
+    url = url.replace('tagebuch.home.smallfamilybusiness.net', 'tagebuch.smallfamilybusiness.net')
+
+    return url
+
+
 def extract_all_wordpress_urls(content: str, wp_base_url: str) -> List[str]:
     """Extrahiere ALLE WordPress Post URLs aus Datei"""
     found_urls = []
-    
+
+    # Support both cloud and home URLs
+    base_domains = ['tagebuch.smallfamilybusiness.net', 'tagebuch.home.smallfamilybusiness.net']
+
     # Methode 1: HTML Parser
     parser = LinkExtractor()
     try:
         parser.feed(content)
         for url in parser.links:
-            if wp_base_url.lower() in url.lower():
+            if any(domain in url.lower() for domain in base_domains):
                 clean_url = url.rstrip('/')
                 if clean_url not in found_urls:
                     found_urls.append(clean_url)
     except:
         pass
-    
+
     # Methode 2: Regex für href
     html_links = re.findall(r'href=["\']([^"\']+)["\']', content, re.IGNORECASE)
     for url in html_links:
-        if wp_base_url.lower() in url.lower():
+        if any(domain in url.lower() for domain in base_domains):
             clean_url = url.rstrip('/')
             if clean_url not in found_urls:
                 found_urls.append(clean_url)
-    
+
     # Methode 3: Plain URLs
     plain_urls = re.findall(r'https?://[^\s<>"]+', content)
     for url in plain_urls:
-        if wp_base_url.lower() in url.lower():
+        if any(domain in url.lower() for domain in base_domains):
             clean_url = url.rstrip('/').rstrip('>')
             if clean_url not in found_urls:
                 found_urls.append(clean_url)
-    
+
     return found_urls
 
 
@@ -82,11 +100,14 @@ def get_post_id_from_url(config, post_url: str) -> Optional[int]:
     wp_url = config['wordpress_url']
     wp_user = config['wordpress_user']
     wp_pass = config['wordpress_app_password']
-    
+
+    # Normalize URL to cloud version for API call
+    post_url = normalize_wordpress_url(post_url, config)
+
     slug = post_url.rstrip('/').split('/')[-1]
     if not slug:
         return None
-    
+
     try:
         response = requests.get(
             f"{wp_url}/wp-json/wp/v2/posts",
@@ -94,14 +115,14 @@ def get_post_id_from_url(config, post_url: str) -> Optional[int]:
             params={'slug': slug, 'per_page': 1},
             timeout=10
         )
-        
+
         if response.status_code == 200:
             posts = response.json()
             if posts:
                 return posts[0]['id']
     except Exception as e:
         print(f"      ⚠️  Fehler beim Abrufen: {e}")
-    
+
     return None
 
 

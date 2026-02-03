@@ -17,6 +17,20 @@ def load_config():
         return tomli.load(f)
 
 
+def normalize_wordpress_url(url: str, config: dict) -> str:
+    """
+    Normalize WordPress URL to cloud version for API operations.
+    RST files should always store cloud URLs.
+    """
+    if not url or not isinstance(url, str):
+        return url
+
+    # Always normalize to cloud URL
+    url = url.replace('tagebuch.home.smallfamilybusiness.net', 'tagebuch.smallfamilybusiness.net')
+
+    return url
+
+
 def get_markers_from_travels() -> Dict[str, Dict]:
     """Lade alle Marker aus travels.yml"""
     if not os.path.exists('travels.yml'):
@@ -146,19 +160,23 @@ def find_matching_posts(marker_data: Dict, posts: List[Dict]) -> List[Tuple[Dict
     return matches[:5]  # Top 5
 
 
-def create_rst_file(marker_key: str, marker_data: Dict, post_url: str, post_title: str):
+def create_rst_file(marker_key: str, marker_data: Dict, post_url: str, post_title: str, config: dict = None):
     """Erstelle RST-Datei mit WordPress-Link"""
     filepath = f'documents/{marker_key}.rst'
-    
+
+    # Normalize URL to cloud version (RST files always store cloud URLs)
+    if config:
+        post_url = normalize_wordpress_url(post_url, config)
+
     address = marker_data.get('address', marker_key)
-    
+
     content = f'{address}\n'
     content += '=' * len(address) + '\n\n'
     content += f'<a href="{post_url}" target="_parent">{post_title}</a>\n'
-    
+
     with open(filepath, 'w', encoding='utf-8') as f:
         f.write(content)
-    
+
     print(f"  ✅ Erstellt: {filepath}")
 
 
@@ -238,7 +256,8 @@ def interactive_mode(config):
                         marker_key,
                         marker_data,
                         post['link'],
-                        post['title']['rendered']
+                        post['title']['rendered'],
+                        config
                     )
                     
                     stats['matched'] += 1
@@ -291,12 +310,13 @@ def automatic_mode(config, threshold=0.8):
             
             print(f"✅ {marker_key}")
             print(f"  → {post['title']['rendered']} (Score: {score:.2f})")
-            
+
             create_rst_file(
                 marker_key,
                 marker_data,
                 post['link'],
-                post['title']['rendered']
+                post['title']['rendered'],
+                config
             )
             
             stats['auto_matched'] += 1

@@ -20,16 +20,57 @@ class WordPress:
         self.username = config.get('wordpress_user', '')
         self.password = config.get('wordpress_password', '')
         self.app_password = config.get('wordpress_app_password', '')
-        
+
+        # Home mode for local WordPress testing
+        self.home_mode = config.get('home_mode', False)
+
         # Cache settings
         self.cache_duration = config.get('wordpress_cache_duration', 3600)  # 1 hour default
         self._posts_cache = {}
         self._cache_timestamp = {}
-        
+
         # Validate configuration
         if not self.base_url:
             print("WARNING: WordPress URL not configured")
-            
+
+        if self.home_mode:
+            print("🏠 HOME MODE: Using local WordPress test instance")
+
+    def transform_url(self, url: str) -> str:
+        """
+        Transform WordPress URL based on home mode setting.
+        If home=true: tagebuch.smallfamilybusiness.net → tagebuch.home.smallfamilybusiness.net
+        If home=false: Keep original URL
+        """
+        if not url or not isinstance(url, str):
+            return url
+
+        if self.home_mode:
+            # Transform cloud URL to home URL
+            url = url.replace('tagebuch.smallfamilybusiness.net', 'tagebuch.home.smallfamilybusiness.net')
+        else:
+            # Transform home URL back to cloud URL (in case documents have home URLs)
+            url = url.replace('tagebuch.home.smallfamilybusiness.net', 'tagebuch.smallfamilybusiness.net')
+
+        return url
+
+    def transform_content(self, content: str) -> str:
+        """
+        Transform all WordPress URLs in HTML/text content.
+        Used for post content, excerpts, and document text.
+        """
+        if not content or not isinstance(content, str):
+            return content
+
+        if self.home_mode:
+            # Transform all cloud URLs to home URLs
+            content = content.replace('tagebuch.smallfamilybusiness.net', 'tagebuch.home.smallfamilybusiness.net')
+        else:
+            # Transform all home URLs back to cloud URLs
+            content = content.replace('tagebuch.home.smallfamilybusiness.net', 'tagebuch.smallfamilybusiness.net')
+
+        return content
+
     def _get_auth(self):
         """Get authentication for WordPress REST API"""
         if self.app_password and self.username:
@@ -122,17 +163,18 @@ class WordPress:
                         featured_image = featured_media[0].get('source_url', '')
                 
                 # NEU: Dekodiere HTML Entities in title, excerpt, content
+                # Transform URLs based on home mode
                 processed_post = {
                     'id': post['id'],
                     'title': html.unescape(post['title']['rendered']),
-                    'excerpt': html.unescape(post['excerpt']['rendered']),
-                    'content': html.unescape(post['content']['rendered']),
+                    'excerpt': self.transform_content(html.unescape(post['excerpt']['rendered'])),
+                    'content': self.transform_content(html.unescape(post['content']['rendered'])),
                     'date': post['date'],
                     'date_gmt': post['date_gmt'],
                     'modified': post['modified'],
-                    'link': post['link'],
+                    'link': self.transform_url(post['link']),
                     'slug': post['slug'],
-                    'featured_image': featured_image,
+                    'featured_image': self.transform_url(featured_image) if featured_image else None,
                     'author': post.get('author', ''),
                     'status': post['status']
                 }

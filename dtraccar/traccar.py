@@ -38,7 +38,27 @@ class Traccar:
     @property
     def hash(self):
         return self._cfg['vuetraccarhash']
-        
+
+    def _transform_wordpress_url(self, content: str) -> str:
+        """
+        Transform WordPress URLs based on home mode setting.
+        If home_mode=true: tagebuch.smallfamilybusiness.net → tagebuch.home.smallfamilybusiness.net
+        If home_mode=false: Keep cloud URLs
+        """
+        if not content or not isinstance(content, str):
+            return content
+
+        home_mode = self._cfg.get('home_mode', False)
+
+        if home_mode:
+            # Transform cloud URL to home URL
+            content = content.replace('tagebuch.smallfamilybusiness.net', 'tagebuch.home.smallfamilybusiness.net')
+        else:
+            # Transform home URL back to cloud URL (in case documents have home URLs)
+            content = content.replace('tagebuch.home.smallfamilybusiness.net', 'tagebuch.smallfamilybusiness.net')
+
+        return content
+
 # -------------------
 # api calls & caching
 # -------------------            
@@ -533,6 +553,8 @@ class Traccar:
         if os.path.exists(file_path):
             with open(file_path, 'r') as file:
                 content = file.read()
+                # Transform URLs based on home mode
+                content = self._transform_wordpress_url(content)
                 return {'md': content}
         else:
             return {'md': f"Bitte 'Bearbeiten' verwenden um Inhalt zu erstellen. "}
